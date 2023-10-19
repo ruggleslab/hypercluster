@@ -7,51 +7,36 @@ from .constants import *
 
 
 class Clusterer:
-    """Meta class for shared methods for both AutoClusterer and MultiAutoClusterer.  
-    """
+    """Meta class for shared methods for both AutoClusterer and MultiAutoClusterer."""
+
     def pick_best_labels(self, method: Optional[str] = None, min_or_max: Optional[str] = None):
         return pick_best_labels(self.evaluation_df, self.labels_df, method, min_or_max)
 
     def visualize_evaluations(
-            self,
-            savefig: bool = False,
-            output_prefix: str = "evaluations",
-            **heatmap_kws
+        self, savefig: bool = False, output_prefix: str = "evaluations", **heatmap_kws
     ) -> List[matplotlib.axes.Axes]:
         return visualize_evaluations(self.evaluation_df, savefig, output_prefix, **heatmap_kws)
 
     def visualize_sample_label_consistency(
-            self,
-            savefig: bool = False,
-            output_prefix: Optional[str] = None,
-            **heatmap_kws
+        self, savefig: bool = False, output_prefix: Optional[str] = None, **heatmap_kws
     ) -> List[matplotlib.axes.Axes]:
         return visualize_sample_label_consistency(
-            self.labels_df,
-            savefig,
-            output_prefix,
-            **heatmap_kws
+            self.labels_df, savefig, output_prefix, **heatmap_kws
         )
 
     def visualize_label_agreement(
-            self,
-            method: Optional[str] = None,
-            savefig: bool = False,
-            output_prefix: Optional[str] = None,
-            **heatmap_kws
+        self,
+        method: Optional[str] = None,
+        savefig: bool = False,
+        output_prefix: Optional[str] = None,
+        **heatmap_kws
     ) -> List[matplotlib.axes.Axes]:
         return visualize_label_agreement(
-            self.labels_df,
-            method,
-            savefig,
-            output_prefix,
-            **heatmap_kws
+            self.labels_df, method, savefig, output_prefix, **heatmap_kws
         )
 
     def visualize_for_picking_labels(
-            self,
-            method: Optional[str] = None,
-            savefig_prefix: Optional[str] = None
+        self, method: Optional[str] = None, savefig_prefix: Optional[str] = None
     ):
         return visualize_for_picking_labels(self.evaluation_df, method, savefig_prefix)
 
@@ -59,7 +44,7 @@ class Clusterer:
         pass
 
 
-class AutoClusterer (Clusterer):
+class AutoClusterer(Clusterer):
     """Main hypercluster object.  
 
     Attributes: 
@@ -92,7 +77,7 @@ class AutoClusterer (Clusterer):
         evaluation_: Optional[DataFrame] = None,
         data: Optional[DataFrame] = None,
         labels_df: Optional[DataFrame] = None,
-        evaluation_df: Optional[DataFrame] = None
+        evaluation_df: Optional[DataFrame] = None,
     ):
 
         self.clusterer_name = clusterer_name
@@ -125,9 +110,9 @@ class AutoClusterer (Clusterer):
         self.generate_param_sets()
 
     def generate_param_sets(self):
-        """Uses info from init to make a Dataframe of all parameter sets that will be tried. 
+        """Uses info from init to make a Dataframe of all parameter sets that will be tried.
 
-        Returns (AutoClusterer): 
+        Returns (AutoClusterer):
             self
         """
         conditions = 1
@@ -142,8 +127,7 @@ class AutoClusterer (Clusterer):
             else:
                 logging.error(
                     "Parameter %s was given no possibilities. Will continue with default "
-                    "parameters."
-                    % parameter_name
+                    "parameters." % parameter_name
                 )
 
         self.static_kwargs = static_kwargs
@@ -184,12 +168,12 @@ class AutoClusterer (Clusterer):
         return self
 
     def fit(self, data: DataFrame):
-        """Fits clusterer to data with each parameter set. 
+        """Fits clusterer to data with each parameter set.
 
-        Args: 
-            data (DataFrame): DataFrame with elements to cluster as index and features as columns.  
+        Args:
+            data (DataFrame): DataFrame with elements to cluster as index and features as columns.
 
-        Returns (AutoClusterer):  
+        Returns (AutoClusterer):
             self
         """
         self.data = data
@@ -211,13 +195,9 @@ class AutoClusterer (Clusterer):
             label_row = dict(zip(data.index, labels))
             label_row.update(single_params)
             label_results = label_results.append(label_row, ignore_index=True)
-            logging.info(
-                "%s - %s of conditions done" % (i, (i / self.total_possible_conditions))
-            )
+            logging.info("%s - %s of conditions done" % (i, (i / self.total_possible_conditions)))
         if len(self.param_sets.columns) > 0:
-            label_results = label_results.set_index(
-                list(self.param_sets.columns)
-            ).transpose()
+            label_results = label_results.set_index(list(self.param_sets.columns)).transpose()
 
         if isinstance(data.index, pd.MultiIndex):
             label_results.index = pd.MultiIndex.from_tuples(label_results.index)
@@ -226,10 +206,10 @@ class AutoClusterer (Clusterer):
         return self
 
     def evaluate(
-            self,
-            methods: Optional[Iterable[str]] = None,
-            metric_kwargs: Optional[dict] = None,
-            gold_standard: Optional[Iterable] = None
+        self,
+        methods: Optional[Iterable[str]] = None,
+        metric_kwargs: Optional[dict] = None,
+        gold_standard: Optional[Iterable] = None,
     ):
         """Evaluate labels with given metrics. 
 
@@ -245,7 +225,7 @@ class AutoClusterer (Clusterer):
 
         """
         if self.labels_ is None:
-            logging.error('Cannot evaluate model, need to fit first.')
+            logging.error("Cannot evaluate model, need to fit first.")
         if methods is None:
             methods = inherent_metrics
         if metric_kwargs is None:
@@ -263,14 +243,14 @@ class AutoClusterer (Clusterer):
                 ),
                 axis=1,
             )
-        evaluation_df = evaluation_df.set_index('methods')
+        evaluation_df = evaluation_df.set_index("methods")
         evaluation_df.columns = self.labels_.columns
         self.evaluation_ = evaluation_df
         self.evaluation_df = generate_flattened_df({self.clusterer_name: evaluation_df})
         return self
 
 
-class MultiAutoClusterer (Clusterer):
+class MultiAutoClusterer(Clusterer):
     """Object for training multiple clustering algorithms.  
 
     Attributes: 
@@ -304,23 +284,24 @@ class MultiAutoClusterer (Clusterer):
         labels_df (Optional[DataFrame]): Combined DataFrame of all labeling results.  
         evaluation_df (Optional[DataFrame]): Combined DataFrame of all evaluation results.  
     """
+
     def __init__(
-            self,
-            algorithm_names: Optional[Union[Iterable, str]] = None,
-            algorithm_parameters: Optional[Dict[str, dict]] = None,
-            random_search: bool = False,
-            random_search_fraction: Optional[float] = 0.5,
-            algorithm_param_weights: Optional[dict] = None,
-            algorithm_clus_kwargs: Optional[dict] = None,
-            data: Optional[DataFrame] = None,
-            evaluation_methods: Optional[List[str]] = None,
-            metric_kwargs: Optional[Dict[str, dict]] = None,
-            gold_standard: Optional[Iterable] = None,
-            autoclusterers: Iterable[AutoClusterer] = None,
-            labels_: Dict[str, AutoClusterer] = None,
-            evaluation_: Dict[str, AutoClusterer] = None,
-            labels_df: Optional[DataFrame] = None,
-            evaluation_df: Optional[DataFrame] = None
+        self,
+        algorithm_names: Optional[Union[Iterable, str]] = None,
+        algorithm_parameters: Optional[Dict[str, dict]] = None,
+        random_search: bool = False,
+        random_search_fraction: Optional[float] = 0.5,
+        algorithm_param_weights: Optional[dict] = None,
+        algorithm_clus_kwargs: Optional[dict] = None,
+        data: Optional[DataFrame] = None,
+        evaluation_methods: Optional[List[str]] = None,
+        metric_kwargs: Optional[Dict[str, dict]] = None,
+        gold_standard: Optional[Iterable] = None,
+        autoclusterers: Iterable[AutoClusterer] = None,
+        labels_: Dict[str, AutoClusterer] = None,
+        evaluation_: Dict[str, AutoClusterer] = None,
+        labels_df: Optional[DataFrame] = None,
+        evaluation_df: Optional[DataFrame] = None,
     ):
 
         self.random_search = random_search
@@ -335,8 +316,8 @@ class MultiAutoClusterer (Clusterer):
 
             if algorithm_parameters is None:
                 algorithm_parameters = {
-                    clus_name: variables_to_optimize[clus_name] for clus_name in
-                    self.algorithm_names
+                    clus_name: variables_to_optimize[clus_name]
+                    for clus_name in self.algorithm_names
                 }
             self.algorithm_parameters = algorithm_parameters
 
@@ -363,17 +344,19 @@ class MultiAutoClusterer (Clusterer):
 
             autoclusterers = []
             for clus_name in self.algorithm_names:
-                autoclusterers.append(AutoClusterer(
-                    clus_name,
-                    params_to_optimize=self.algorithm_parameters.get(clus_name, {}),
-                    random_search = self.random_search,
-                    random_search_fraction = self.random_search_fraction,
-                    data=data,
-                    param_weights=self.algorithm_param_weights.get(clus_name, {}),
-                    clus_kwargs=self.algorithm_clus_kwargs.get(clus_name, {}),
-                    labels_=self.labels_.get(clus_name, None),
-                    evaluation_=self.evaluation_.get(clus_name, None)
-                ))
+                autoclusterers.append(
+                    AutoClusterer(
+                        clus_name,
+                        params_to_optimize=self.algorithm_parameters.get(clus_name, {}),
+                        random_search=self.random_search,
+                        random_search_fraction=self.random_search_fraction,
+                        data=data,
+                        param_weights=self.algorithm_param_weights.get(clus_name, {}),
+                        clus_kwargs=self.algorithm_clus_kwargs.get(clus_name, {}),
+                        labels_=self.labels_.get(clus_name, None),
+                        evaluation_=self.evaluation_.get(clus_name, None),
+                    )
+                )
             self.autoclusterers = autoclusterers
 
         else:
@@ -392,7 +375,8 @@ class MultiAutoClusterer (Clusterer):
             }
             self.evaluation_ = {
                 ac.clusterer_name: ac.evaluation_
-                for ac in autoclusterers if ac.evaluation_ is not None
+                for ac in autoclusterers
+                if ac.evaluation_ is not None
             }
 
             self.labels_df = generate_flattened_df(self.labels_)
@@ -408,25 +392,23 @@ class MultiAutoClusterer (Clusterer):
         if data is None:
             data = self.data
         if data is None:
-            raise ValueError('Must initialize with data or pass data in function to fit.')
+            raise ValueError("Must initialize with data or pass data in function to fit.")
         self.data = data
 
         fitted_clusterers = []
         for clusterer in self.autoclusterers:
             fitted_clusterers.append(clusterer.fit(data))
-        #TODO right now each AC is storing it's own copy of the data.
+        # TODO right now each AC is storing it's own copy of the data.
         self.autoclusterers = fitted_clusterers
-        self.labels_ = {
-            ac.clusterer_name: ac.labels_ for ac in self.autoclusterers
-        }
+        self.labels_ = {ac.clusterer_name: ac.labels_ for ac in self.autoclusterers}
         self.labels_df = generate_flattened_df(self.labels_)
         return self
 
     def evaluate(
-            self,
-            evaluation_methods: Optional[list] = None,
-            metric_kwargs: Optional[dict] = None,
-            gold_standard: Optional[Iterable] = None
+        self,
+        evaluation_methods: Optional[list] = None,
+        metric_kwargs: Optional[dict] = None,
+        gold_standard: Optional[Iterable] = None,
     ):
         if evaluation_methods is None and self.evaluation_methods is None:
             evaluation_methods = inherent_metrics
@@ -443,19 +425,19 @@ class MultiAutoClusterer (Clusterer):
 
         evaluated_clusterers = []
         for ac in self.autoclusterers:
-            evaluated_clusterers.append(ac.evaluate(
-                methods=evaluation_methods,
-                metric_kwargs=metric_kwargs,
-                gold_standard=gold_standard
-            ))
+            evaluated_clusterers.append(
+                ac.evaluate(
+                    methods=evaluation_methods,
+                    metric_kwargs=metric_kwargs,
+                    gold_standard=gold_standard,
+                )
+            )
 
         self.gold_standard = gold_standard
         self.metric_kwargs = metric_kwargs
         self.evaluation_methods = evaluation_methods
 
         self.autoclusterers = evaluated_clusterers
-        self.evaluation_ = {
-            ac.clusterer_name: ac.evaluation_ for ac in self.autoclusterers
-        }
+        self.evaluation_ = {ac.clusterer_name: ac.evaluation_ for ac in self.autoclusterers}
         self.evaluation_df = generate_flattened_df(self.evaluation_)
         return self
