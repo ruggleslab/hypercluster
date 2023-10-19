@@ -135,10 +135,11 @@ class AutoClusterer(Clusterer):
 
         parameters = pd.DataFrame(columns=list(vars_to_optimize.keys()))
         for row in iter(product(*vars_to_optimize.values())):
-            parameters = parameters.append(
-                dict(zip(vars_to_optimize.keys(), row)), ignore_index=True
-            )
 
+            parameters = []
+            for row in iter(product(*vars_to_optimize.values())):
+                parameters.append(dict(zip(vars_to_optimize.keys(), row)))
+            parameters = pd.DataFrame(parameters)
         if self.random_search and len(parameters) > 1:
             will_search = int(conditions * self.random_search_fraction)
 
